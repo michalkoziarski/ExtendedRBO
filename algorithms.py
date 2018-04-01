@@ -103,7 +103,7 @@ class RBO:
 
 class RBOPlus:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
-                 scale_gamma=False, cache_potential=True, n=None):
+                 scale_gamma=False, generate_in_between=False, cache_potential=True, n=None):
         assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
 
         self.gamma = gamma
@@ -111,6 +111,7 @@ class RBOPlus:
         self.step_size = step_size
         self.n_nearest_neighbors = n_nearest_neighbors
         self.scale_gamma = scale_gamma
+        self.generate_in_between = generate_in_between
         self.cache_potential = cache_potential
         self.n = n
 
@@ -167,6 +168,7 @@ class RBOPlus:
 
             for _ in range(n_synthetic_points_per_minority_object[i]):
                 translation = [0 for _ in range(len(point))]
+                translation_history = [translation]
                 potential = fetch_or_compute_potential(point, translation, closest_majority_points,
                                                        closest_minority_points, cached_potentials,
                                                        self.gamma, minority_gamma)
@@ -185,8 +187,12 @@ class RBOPlus:
 
                     if np.abs(modified_potential) < np.abs(potential):
                         translation = modified_translation
+                        translation_history.append(translation)
                         potential = modified_potential
                         possible_directions = generate_possible_directions(len(point))
+
+                if self.generate_in_between:
+                    translation = np.random.choice(translation_history)
 
                 appended.append(point + translation)
 
