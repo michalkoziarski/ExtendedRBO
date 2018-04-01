@@ -95,7 +95,7 @@ class RBO:
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
 
 
-class FastRBO:
+class RBOPlus:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
                  cache_potential=True, n=None):
         assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
