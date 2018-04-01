@@ -12,26 +12,32 @@ def rbf(d, gamma):
         return np.exp(-(d / gamma) ** 2)
 
 
-def mutual_class_potential(point, majority_points, minority_points, gamma):
+def mutual_class_potential(point, majority_points, minority_points, majority_gamma, minority_gamma=None):
+    if minority_gamma is None:
+        minority_gamma = majority_gamma
+
     result = 0.0
 
     for majority_point in majority_points:
-        result += rbf(distance(point, majority_point), gamma)
+        result += rbf(distance(point, majority_point), majority_gamma)
 
     for minority_point in minority_points:
-        result -= rbf(distance(point, minority_point), gamma)
+        result -= rbf(distance(point, minority_point), minority_gamma)
 
     return result
 
 
-def fetch_or_compute_potential(point, translation, majority_points, minority_points, gamma, cached_potentials):
+def fetch_or_compute_potential(point, translation, majority_points, minority_points,
+                               cached_potentials, majority_gamma, minority_gamma):
     if cached_potentials is None:
-        return mutual_class_potential(point + translation, majority_points, minority_points, gamma)
+        return mutual_class_potential(point + translation, majority_points, minority_points,
+                                      majority_gamma, minority_gamma)
     else:
         cached_potential = cached_potentials.get(tuple(translation))
 
         if cached_potential is None:
-            potential = mutual_class_potential(point + translation, majority_points, minority_points, gamma)
+            potential = mutual_class_potential(point + translation, majority_points, minority_points,
+                                               majority_gamma, minority_gamma)
             cached_potentials[tuple(translation)] = potential
 
             return potential
@@ -97,13 +103,14 @@ class RBO:
 
 class RBOPlus:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
-                 cache_potential=True, n=None):
+                 scale_gamma=False, cache_potential=True, n=None):
         assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
 
         self.gamma = gamma
         self.n_steps = n_steps
         self.step_size = step_size
         self.n_nearest_neighbors = n_nearest_neighbors
+        self.scale_gamma = scale_gamma
         self.cache_potential = cache_potential
         self.n = n
 
@@ -118,6 +125,8 @@ class RBOPlus:
         majority_class = classes[np.argmax(sizes)]
         minority_points = X[y == minority_class]
         majority_points = X[y == majority_class]
+
+        imbalance_ratio = len(majority_points) / len(minority_points)
 
         if self.n is None:
             n = len(majority_points) - len(minority_points)
@@ -151,10 +160,16 @@ class RBOPlus:
                 closest_minority_points = closest_points[closest_labels == minority_class]
                 closest_majority_points = closest_points[closest_labels == majority_class]
 
+            if self.scale_gamma:
+                minority_gamma = self.gamma * imbalance_ratio
+            else:
+                minority_gamma = self.gamma
+
             for _ in range(n_synthetic_points_per_minority_object[i]):
                 translation = [0 for _ in range(len(point))]
                 potential = fetch_or_compute_potential(point, translation, closest_majority_points,
-                                                       closest_minority_points, self.gamma, cached_potentials)
+                                                       closest_minority_points, cached_potentials,
+                                                       self.gamma, minority_gamma)
                 possible_directions = generate_possible_directions(len(point))
 
                 for _ in range(self.n_steps):
@@ -166,7 +181,7 @@ class RBOPlus:
                     modified_translation[dimension] += sign * self.step_size
                     modified_potential = fetch_or_compute_potential(point, modified_translation,
                                                                     closest_majority_points, closest_minority_points,
-                                                                    self.gamma, cached_potentials)
+                                                                    cached_potentials, self.gamma, minority_gamma)
 
                     if np.abs(modified_potential) < np.abs(potential):
                         translation = modified_translation
