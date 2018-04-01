@@ -98,7 +98,7 @@ class RBO:
 class FastRBO:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
                  cache_potential=True, n=None):
-        assert n_nearest_neighbors is None or n_nearest_neighbors > 1
+        assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
 
         self.gamma = gamma
         self.n_steps = n_steps
@@ -145,7 +145,7 @@ class FastRBO:
                 closest_majority_points = majority_points
             else:
                 distances = [distance(point, x) for x in X]
-                sorted_indices = np.argsort(distances)[:self.n_nearest_neighbors]
+                sorted_indices = np.argsort(distances)[:(self.n_nearest_neighbors + 1)]
                 closest_points = X[sorted_indices]
                 closest_labels = y[sorted_indices]
                 closest_minority_points = closest_points[closest_labels == minority_class]
