@@ -115,17 +115,22 @@ class FastRBO:
                 translation = [0 for _ in range(len(point))]
                 potential = self.fetch_or_compute_potential(point, translation, majority_points,
                                                             minority_points, cached_potentials)
+                possible_directions = FastRBO.generate_possible_directions(len(point))
 
                 for _ in range(self.n_steps):
+                    if len(possible_directions) == 0:
+                        break
+
+                    dimension, sign = possible_directions.pop()
                     modified_translation = translation.copy()
-                    sign = np.random.choice([-1, 1])
-                    modified_translation[np.random.choice(range(len(point)))] += sign * self.step_size
+                    modified_translation[dimension] += sign * self.step_size
                     modified_potential = self.fetch_or_compute_potential(point, modified_translation, majority_points,
                                                                          minority_points, cached_potentials)
 
                     if np.abs(modified_potential) < np.abs(potential):
                         translation = modified_translation
                         potential = modified_potential
+                        possible_directions = FastRBO.generate_possible_directions(len(point))
 
                 appended.append(point)
 
@@ -144,3 +149,11 @@ class FastRBO:
                 return potential
             else:
                 return cached_potential
+
+    @staticmethod
+    def generate_possible_directions(n_dimensions):
+        possible_directions = [(dimension, sign) for dimension in range(n_dimensions) for sign in [-1, 1]]
+
+        np.random.shuffle(possible_directions)
+
+        return possible_directions
