@@ -69,3 +69,78 @@ class RBO:
             appended.append(point)
 
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
+
+
+class FastRBO:
+    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, cache_potential=True, n=None):
+        self.gamma = gamma
+        self.n_steps = n_steps
+        self.step_size = step_size
+        self.cache_potential = cache_potential
+        self.n = n
+
+    def fit_sample(self, X, y):
+        classes = np.unique(y)
+
+        assert len(classes) == 2
+
+        sizes = [sum(y == c) for c in classes]
+
+        minority_class = classes[np.argmin(sizes)]
+        majority_class = classes[np.argmax(sizes)]
+        minority_points = X[y == minority_class].copy()
+        majority_points = X[y == majority_class].copy()
+
+        if self.n is None:
+            n = len(majority_points) - len(minority_points)
+        else:
+            n = self.n
+
+        appended = []
+
+        n_synthetic_points_per_minority_object = {i: 0 for i in range(len(minority_points))}
+
+        for _ in range(n):
+            idx = np.random.choice(range(len(minority_points)))
+            n_synthetic_points_per_minority_object[idx] += 1
+
+        for i in range(len(minority_points)):
+            if self.cache_potential:
+                cached_potentials = {}
+            else:
+                cached_potentials = None
+
+            for _ in range(n_synthetic_points_per_minority_object[i]):
+                point = minority_points[i].copy()
+                translation = [0 for _ in range(len(point))]
+                potential = self.fetch_or_compute_potential(point, translation, majority_points,
+                                                            minority_points, cached_potentials)
+
+                for _ in range(self.n_steps):
+                    modified_translation = translation.copy()
+                    sign = np.random.choice([-1, 1])
+                    modified_translation[np.random.choice(range(len(point)))] += sign * self.step_size
+                    modified_potential = self.fetch_or_compute_potential(point, modified_translation, majority_points,
+                                                                         minority_points, cached_potentials)
+
+                    if np.abs(modified_potential) < np.abs(potential):
+                        translation = modified_translation
+                        potential = modified_potential
+
+                appended.append(point)
+
+        return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
+
+    def fetch_or_compute_potential(self, point, translation, majority_points, minority_points, cached_potentials):
+        if cached_potentials is None:
+            return mutual_class_potential(point + translation, majority_points, minority_points, self.gamma)
+        else:
+            cached_potential = cached_potentials.get(tuple(translation))
+
+            if cached_potential is None:
+                potential = mutual_class_potential(point + translation, majority_points, minority_points, self.gamma)
+                cached_potentials[tuple(translation)] = potential
+
+                return potential
+            else:
+                return cached_potential
