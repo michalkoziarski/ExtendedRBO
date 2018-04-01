@@ -188,6 +188,6 @@ class RBOPlus:
                         potential = modified_potential
                         possible_directions = generate_possible_directions(len(point))
 
-                appended.append(point)
+                appended.append(point + translation)
 
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
