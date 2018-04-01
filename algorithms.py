@@ -1,8 +1,8 @@
 import numpy as np
 
 
-def distance(x, y, p=2):
-    return np.sum(np.abs(x - y) ** p) ** (1 / p)
+def distance(x, y, p_norm=1):
+    return np.sum(np.abs(x - y) ** p_norm) ** (1 / p_norm)
 
 
 def rbf(d, gamma):
@@ -24,6 +24,29 @@ def mutual_class_potential(point, majority_points, minority_points, gamma):
     return result
 
 
+def fetch_or_compute_potential(point, translation, majority_points, minority_points, gamma, cached_potentials):
+    if cached_potentials is None:
+        return mutual_class_potential(point + translation, majority_points, minority_points, gamma)
+    else:
+        cached_potential = cached_potentials.get(tuple(translation))
+
+        if cached_potential is None:
+            potential = mutual_class_potential(point + translation, majority_points, minority_points, gamma)
+            cached_potentials[tuple(translation)] = potential
+
+            return potential
+        else:
+            return cached_potential
+
+
+def generate_possible_directions(n_dimensions):
+    possible_directions = [(dimension, sign) for dimension in range(n_dimensions) for sign in [-1, 1]]
+
+    np.random.shuffle(possible_directions)
+
+    return possible_directions
+
+
 class RBO:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n=None):
         self.gamma = gamma
@@ -40,8 +63,8 @@ class RBO:
 
         minority_class = classes[np.argmin(sizes)]
         majority_class = classes[np.argmax(sizes)]
-        minority_points = X[y == minority_class].copy()
-        majority_points = X[y == majority_class].copy()
+        minority_points = X[y == minority_class]
+        majority_points = X[y == majority_class]
 
         if self.n is None:
             n = len(majority_points) - len(minority_points)
@@ -60,7 +83,8 @@ class RBO:
                 sign = np.random.choice([-1, 1])
                 translation[np.random.choice(range(len(point)))] = sign * self.step_size
                 translated_point = point + translation
-                translated_potential = mutual_class_potential(translated_point, majority_points, minority_points, self.gamma)
+                translated_potential = mutual_class_potential(translated_point, majority_points,
+                                                              minority_points, self.gamma)
 
                 if np.abs(translated_potential) < np.abs(potential):
                     point = translated_point
@@ -72,10 +96,14 @@ class RBO:
 
 
 class FastRBO:
-    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, cache_potential=True, n=None):
+    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
+                 cache_potential=True, n=None):
+        assert n_nearest_neighbors is None or n_nearest_neighbors > 1
+
         self.gamma = gamma
         self.n_steps = n_steps
         self.step_size = step_size
+        self.n_nearest_neighbors = n_nearest_neighbors
         self.cache_potential = cache_potential
         self.n = n
 
@@ -88,8 +116,8 @@ class FastRBO:
 
         minority_class = classes[np.argmin(sizes)]
         majority_class = classes[np.argmax(sizes)]
-        minority_points = X[y == minority_class].copy()
-        majority_points = X[y == majority_class].copy()
+        minority_points = X[y == minority_class]
+        majority_points = X[y == majority_class]
 
         if self.n is None:
             n = len(majority_points) - len(minority_points)
@@ -105,17 +133,29 @@ class FastRBO:
             n_synthetic_points_per_minority_object[idx] += 1
 
         for i in range(len(minority_points)):
+            point = minority_points[i]
+
             if self.cache_potential:
                 cached_potentials = {}
             else:
                 cached_potentials = None
 
+            if self.n_nearest_neighbors is None:
+                closest_minority_points = minority_points
+                closest_majority_points = majority_points
+            else:
+                distances = [distance(point, x) for x in X]
+                sorted_indices = np.argsort(distances)[:self.n_nearest_neighbors]
+                closest_points = X[sorted_indices]
+                closest_labels = y[sorted_indices]
+                closest_minority_points = closest_points[closest_labels == minority_class]
+                closest_majority_points = closest_points[closest_labels == majority_class]
+
             for _ in range(n_synthetic_points_per_minority_object[i]):
-                point = minority_points[i].copy()
                 translation = [0 for _ in range(len(point))]
-                potential = self.fetch_or_compute_potential(point, translation, majority_points,
-                                                            minority_points, cached_potentials)
-                possible_directions = FastRBO.generate_possible_directions(len(point))
+                potential = fetch_or_compute_potential(point, translation, closest_majority_points,
+                                                       closest_minority_points, self.gamma, cached_potentials)
+                possible_directions = generate_possible_directions(len(point))
 
                 for _ in range(self.n_steps):
                     if len(possible_directions) == 0:
@@ -124,36 +164,15 @@ class FastRBO:
                     dimension, sign = possible_directions.pop()
                     modified_translation = translation.copy()
                     modified_translation[dimension] += sign * self.step_size
-                    modified_potential = self.fetch_or_compute_potential(point, modified_translation, majority_points,
-                                                                         minority_points, cached_potentials)
+                    modified_potential = fetch_or_compute_potential(point, modified_translation,
+                                                                    closest_majority_points, closest_minority_points,
+                                                                    self.gamma, cached_potentials)
 
                     if np.abs(modified_potential) < np.abs(potential):
                         translation = modified_translation
                         potential = modified_potential
-                        possible_directions = FastRBO.generate_possible_directions(len(point))
+                        possible_directions = generate_possible_directions(len(point))
 
                 appended.append(point)
 
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
-
-    def fetch_or_compute_potential(self, point, translation, majority_points, minority_points, cached_potentials):
-        if cached_potentials is None:
-            return mutual_class_potential(point + translation, majority_points, minority_points, self.gamma)
-        else:
-            cached_potential = cached_potentials.get(tuple(translation))
-
-            if cached_potential is None:
-                potential = mutual_class_potential(point + translation, majority_points, minority_points, self.gamma)
-                cached_potentials[tuple(translation)] = potential
-
-                return potential
-            else:
-                return cached_potential
-
-    @staticmethod
-    def generate_possible_directions(n_dimensions):
-        possible_directions = [(dimension, sign) for dimension in range(n_dimensions) for sign in [-1, 1]]
-
-        np.random.shuffle(possible_directions)
-
-        return possible_directions
