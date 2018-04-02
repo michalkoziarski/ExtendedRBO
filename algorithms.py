@@ -59,54 +59,6 @@ def generate_possible_directions(n_dimensions, excluded_direction=None):
     return possible_directions
 
 
-class RBO:
-    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n=None):
-        self.gamma = gamma
-        self.n_steps = n_steps
-        self.step_size = step_size
-        self.n = n
-
-    def fit_sample(self, X, y):
-        classes = np.unique(y)
-
-        assert len(classes) == 2
-
-        sizes = [sum(y == c) for c in classes]
-
-        minority_class = classes[np.argmin(sizes)]
-        majority_class = classes[np.argmax(sizes)]
-        minority_points = X[y == minority_class]
-        majority_points = X[y == majority_class]
-
-        if self.n is None:
-            n = len(majority_points) - len(minority_points)
-        else:
-            n = self.n
-
-        appended = []
-
-        while len(appended) < n:
-            idx = np.random.choice(range(len(minority_points)))
-            point = minority_points[idx].copy()
-            potential = mutual_class_potential(point, majority_points, minority_points, self.gamma)
-
-            for i in range(self.n_steps):
-                translation = np.zeros(len(point))
-                sign = np.random.choice([-1, 1])
-                translation[np.random.choice(range(len(point)))] = sign * self.step_size
-                translated_point = point + translation
-                translated_potential = mutual_class_potential(translated_point, majority_points,
-                                                              minority_points, self.gamma)
-
-                if np.abs(translated_potential) < np.abs(potential):
-                    point = translated_point
-                    potential = translated_potential
-
-            appended.append(point)
-
-        return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
-
-
 class ExtendedRBO:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, approximate_potential=False, n_nearest_neighbors=25,
                  gamma_scaling=None, borderline=False, m_nearest_neighbors=5, generate_in_between=False,
