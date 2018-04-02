@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 
@@ -107,8 +108,8 @@ class RBO:
 
 
 class RBOPlus:
-    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
-                 gamma_scaling=None, generate_in_between=False, cache_potential=True, n=None):
+    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None, gamma_scaling=None,
+                 borderline=False, m_nearest_neighbors=5, generate_in_between=False, cache_potential=True, n=None):
         assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
         assert gamma_scaling in [None, 'linear', 'sqrt', 'log']
 
@@ -117,6 +118,8 @@ class RBOPlus:
         self.step_size = step_size
         self.n_nearest_neighbors = n_nearest_neighbors
         self.gamma_scaling = gamma_scaling
+        self.borderline = borderline
+        self.m_nearest_neighbors = m_nearest_neighbors
         self.generate_in_between = generate_in_between
         self.cache_potential = cache_potential
         self.n = n
@@ -142,13 +145,39 @@ class RBOPlus:
 
         appended = []
 
-        n_synthetic_points_per_minority_object = {i: 0 for i in range(len(minority_points))}
+        if self.borderline:
+            sorted_neighbors_indices = []
+            considered_minority_points_indices = []
+
+            for i in range(len(minority_points)):
+                distance_vector = [distance(minority_points[i], x) for x in X]
+                distance_vector[i] = -np.inf
+                indices = np.argsort(distance_vector)
+                sorted_neighbors_indices.append(indices)
+
+                n_minority_neighbors = np.sum(y[indices[1:(self.m_nearest_neighbors + 1)]] == minority_class)
+
+                if self.m_nearest_neighbors / 2 <= n_minority_neighbors < self.m_nearest_neighbors:
+                    considered_minority_points_indices.append(i)
+
+            if len(considered_minority_points_indices) == 0:
+                logging.warning('Failed to find any borderline instances, falling back to non-borderline mode.')
+
+                considered_minority_points_indices = range(len(minority_points))
+        else:
+            sorted_neighbors_indices = None
+            considered_minority_points_indices = range(len(minority_points))
+
+        n_synthetic_points_per_minority_object = {i: 0 for i in considered_minority_points_indices}
 
         for _ in range(n):
-            idx = np.random.choice(range(len(minority_points)))
+            idx = np.random.choice(considered_minority_points_indices)
             n_synthetic_points_per_minority_object[idx] += 1
 
-        for i in range(len(minority_points)):
+        for i in considered_minority_points_indices:
+            if n_synthetic_points_per_minority_object[i] == 0:
+                continue
+
             point = minority_points[i]
 
             if self.cache_potential:
@@ -160,10 +189,15 @@ class RBOPlus:
                 closest_minority_points = minority_points
                 closest_majority_points = majority_points
             else:
-                distances = [distance(point, x) for x in X]
-                sorted_indices = np.argsort(distances)[:(self.n_nearest_neighbors + 1)]
-                closest_points = X[sorted_indices]
-                closest_labels = y[sorted_indices]
+                if sorted_neighbors_indices is None:
+                    distance_vector = [distance(point, x) for x in X]
+                    distance_vector[i] = -np.inf
+                    indices = np.argsort(distance_vector)[:(self.n_nearest_neighbors + 1)]
+                else:
+                    indices = sorted_neighbors_indices[:(self.n_nearest_neighbors + 1)]
+
+                closest_points = X[indices]
+                closest_labels = y[indices]
                 closest_minority_points = closest_points[closest_labels == minority_class]
                 closest_majority_points = closest_points[closest_labels == majority_class]
 
