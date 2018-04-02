@@ -45,8 +45,13 @@ def fetch_or_compute_potential(point, translation, majority_points, minority_poi
             return cached_potential
 
 
-def generate_possible_directions(n_dimensions):
-    possible_directions = [(dimension, sign) for dimension in range(n_dimensions) for sign in [-1, 1]]
+def generate_possible_directions(n_dimensions, excluded_direction=None):
+    possible_directions = []
+
+    for dimension in range(n_dimensions):
+        for sign in [-1, 1]:
+            if excluded_direction is None or (excluded_direction[0] != dimension or excluded_direction[1] != sign):
+                possible_directions.append((dimension, sign))
 
     np.random.shuffle(possible_directions)
 
@@ -189,7 +194,7 @@ class RBOPlus:
                         translation = modified_translation
                         translation_history.append(translation)
                         potential = modified_potential
-                        possible_directions = generate_possible_directions(len(point))
+                        possible_directions = generate_possible_directions(len(point), (dimension, -sign))
 
                 if self.generate_in_between:
                     translation = np.random.choice(translation_history)
