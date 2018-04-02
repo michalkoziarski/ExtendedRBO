@@ -139,6 +139,19 @@ class ExtendedRBO:
 
         imbalance_ratio = len(majority_points) / len(minority_points)
 
+        majority_gamma = self.gamma
+
+        if self.gamma_scaling is None:
+            minority_gamma = self.gamma
+        elif self.gamma_scaling == 'linear':
+            minority_gamma = self.gamma * imbalance_ratio
+        elif self.gamma_scaling == 'sqrt':
+            minority_gamma = self.gamma * np.sqrt(imbalance_ratio)
+        elif self.gamma_scaling == 'log':
+            minority_gamma = self.gamma_scaling * np.log2(1 + imbalance_ratio)
+        else:
+            raise NotImplementedError
+
         if self.n is None:
             n = len(majority_points) - len(minority_points)
         else:
@@ -202,23 +215,12 @@ class ExtendedRBO:
                 closest_minority_points = minority_points
                 closest_majority_points = majority_points
 
-            if self.gamma_scaling is None:
-                minority_gamma = self.gamma
-            elif self.gamma_scaling == 'linear':
-                minority_gamma = self.gamma * imbalance_ratio
-            elif self.gamma_scaling == 'sqrt':
-                minority_gamma = self.gamma * np.sqrt(imbalance_ratio)
-            elif self.gamma_scaling == 'log':
-                minority_gamma = self.gamma_scaling * np.log2(1 + imbalance_ratio)
-            else:
-                raise NotImplementedError
-
             for _ in range(n_synthetic_points_per_minority_object[i]):
                 translation = [0 for _ in range(len(point))]
                 translation_history = [translation]
                 potential = fetch_or_compute_potential(point, translation, closest_majority_points,
                                                        closest_minority_points, cached_potentials,
-                                                       self.gamma, minority_gamma)
+                                                       majority_gamma, minority_gamma)
                 possible_directions = generate_possible_directions(len(point))
 
                 for _ in range(self.n_steps):
@@ -230,7 +232,7 @@ class ExtendedRBO:
                     modified_translation[dimension] += sign * self.step_size
                     modified_potential = fetch_or_compute_potential(point, modified_translation,
                                                                     closest_majority_points, closest_minority_points,
-                                                                    cached_potentials, self.gamma, minority_gamma)
+                                                                    cached_potentials, majority_gamma, minority_gamma)
 
                     if np.abs(modified_potential) < np.abs(potential):
                         translation = modified_translation
