@@ -60,17 +60,19 @@ def generate_possible_directions(n_dimensions, excluded_direction=None):
 
 
 class ExtendedRBO:
-    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, approximate_potential=False, n_nearest_neighbors=25,
-                 gamma_scaling=None, borderline=False, m_nearest_neighbors=5, generate_in_between=False,
-                 cache_potential=True, n=None):
+    def __init__(self, gamma=0.05, step_size=0.001, n_steps=500, gamma_scaling=None, n_steps_scaling=None,
+                 approximate_potential=False, n_nearest_neighbors=25, borderline=False, m_nearest_neighbors=5,
+                 generate_in_between=False, cache_potential=True, n=None):
         assert gamma_scaling in [None, 'linear', 'sqrt', 'log']
+        assert n_steps_scaling in [None, 'linear']
 
         self.gamma = gamma
-        self.n_steps = n_steps
         self.step_size = step_size
+        self.n_steps = n_steps
+        self.gamma_scaling = gamma_scaling
+        self.n_steps_scaling = n_steps_scaling
         self.approximate_potential = approximate_potential
         self.n_nearest_neighbors = n_nearest_neighbors
-        self.gamma_scaling = gamma_scaling
         self.borderline = borderline
         self.m_nearest_neighbors = m_nearest_neighbors
         self.generate_in_between = generate_in_between
@@ -101,6 +103,13 @@ class ExtendedRBO:
             minority_gamma = self.gamma * np.sqrt(imbalance_ratio)
         elif self.gamma_scaling == 'log':
             minority_gamma = self.gamma_scaling * np.log2(1 + imbalance_ratio)
+        else:
+            raise NotImplementedError
+
+        if self.n_steps_scaling is None:
+            n_steps = self.n_steps
+        elif self.n_steps_scaling == 'linear':
+            n_steps = self.n_steps * X.shape[1]
         else:
             raise NotImplementedError
 
@@ -175,7 +184,7 @@ class ExtendedRBO:
                                                        majority_gamma, minority_gamma)
                 possible_directions = generate_possible_directions(len(point))
 
-                for _ in range(self.n_steps):
+                for _ in range(n_steps):
                     if len(possible_directions) == 0:
                         break
 
