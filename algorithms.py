@@ -107,7 +107,7 @@ class RBO:
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
 
 
-class RBOPlus:
+class ExtendedRBO:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, approximate_potential=False, n_nearest_neighbors=25,
                  gamma_scaling=None, borderline=False, m_nearest_neighbors=5, generate_in_between=False,
                  cache_potential=True, n=None):
