@@ -108,14 +108,15 @@ class RBO:
 
 
 class RBOPlus:
-    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None, gamma_scaling=None,
-                 borderline=False, m_nearest_neighbors=5, generate_in_between=False, cache_potential=True, n=None):
-        assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
+    def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, approximate_potential=False, n_nearest_neighbors=25,
+                 gamma_scaling=None, borderline=False, m_nearest_neighbors=5, generate_in_between=False,
+                 cache_potential=True, n=None):
         assert gamma_scaling in [None, 'linear', 'sqrt', 'log']
 
         self.gamma = gamma
         self.n_steps = n_steps
         self.step_size = step_size
+        self.approximate_potential = approximate_potential
         self.n_nearest_neighbors = n_nearest_neighbors
         self.gamma_scaling = gamma_scaling
         self.borderline = borderline
@@ -185,10 +186,7 @@ class RBOPlus:
             else:
                 cached_potentials = None
 
-            if self.n_nearest_neighbors is None:
-                closest_minority_points = minority_points
-                closest_majority_points = majority_points
-            else:
+            if self.approximate_potential:
                 if sorted_neighbors_indices is None:
                     distance_vector = [distance(point, x) for x in X]
                     distance_vector[i] = -np.inf
@@ -200,6 +198,9 @@ class RBOPlus:
                 closest_labels = y[indices]
                 closest_minority_points = closest_points[closest_labels == minority_class]
                 closest_majority_points = closest_points[closest_labels == majority_class]
+            else:
+                closest_minority_points = minority_points
+                closest_majority_points = majority_points
 
             if self.gamma_scaling is None:
                 minority_gamma = self.gamma
