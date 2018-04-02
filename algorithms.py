@@ -108,14 +108,15 @@ class RBO:
 
 class RBOPlus:
     def __init__(self, gamma=0.05, n_steps=500, step_size=0.001, n_nearest_neighbors=None,
-                 scale_gamma=False, generate_in_between=False, cache_potential=True, n=None):
+                 gamma_scaling=None, generate_in_between=False, cache_potential=True, n=None):
         assert n_nearest_neighbors is None or n_nearest_neighbors >= 1
+        assert gamma_scaling in [None, 'linear', 'sqrt', 'log']
 
         self.gamma = gamma
         self.n_steps = n_steps
         self.step_size = step_size
         self.n_nearest_neighbors = n_nearest_neighbors
-        self.scale_gamma = scale_gamma
+        self.gamma_scaling = gamma_scaling
         self.generate_in_between = generate_in_between
         self.cache_potential = cache_potential
         self.n = n
@@ -166,10 +167,16 @@ class RBOPlus:
                 closest_minority_points = closest_points[closest_labels == minority_class]
                 closest_majority_points = closest_points[closest_labels == majority_class]
 
-            if self.scale_gamma:
-                minority_gamma = self.gamma * imbalance_ratio
-            else:
+            if self.gamma_scaling is None:
                 minority_gamma = self.gamma
+            elif self.gamma_scaling == 'linear':
+                minority_gamma = self.gamma * imbalance_ratio
+            elif self.gamma_scaling == 'sqrt':
+                minority_gamma = self.gamma * np.sqrt(imbalance_ratio)
+            elif self.gamma_scaling == 'log':
+                minority_gamma = self.gamma_scaling * np.log2(1 + imbalance_ratio)
+            else:
+                raise NotImplementedError
 
             for _ in range(n_synthetic_points_per_minority_object[i]):
                 translation = [0 for _ in range(len(point))]
