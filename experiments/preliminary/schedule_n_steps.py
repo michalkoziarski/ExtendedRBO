@@ -1,5 +1,8 @@
-import sys
+import logging
 import os
+import sys
+
+from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -7,7 +10,12 @@ import databases
 import datasets
 
 
-for dataset in datasets.names('preliminary'):
+logging.basicConfig(level=logging.INFO)
+
+logging.info('Scheduling experiments...')
+
+
+for dataset in tqdm(datasets.names('preliminary')):
     for fold in range(1, 11):
         for classifier in ['KNN', 'CART', 'SVM', 'NB']:
             for n_steps in [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]:
