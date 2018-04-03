@@ -29,7 +29,7 @@ def run():
         if trial is None:
             break
 
-        logging.info(str(trial))
+        logging.info('Processing trial: %s...' % trial)
 
         classifiers = {
             'NB': GaussianNB(),
