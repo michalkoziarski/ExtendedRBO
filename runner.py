@@ -50,7 +50,11 @@ def run():
         clf = classifiers.get(trial['Classifier'])
 
         if trial['Algorithm'] == 'RBO+':
-            params = json.loads(trial['Parameters'])
+            if trial.get('Parameters') is None:
+                params = {}
+            else:
+                params = json.loads(trial['Parameters'].replace('\'', '"'))
+
             algorithm = ExtendedRBO(**params)
         elif (trial['Algorithm'] is None) or (trial['Algorithm'] == 'None'):
             algorithm = None
