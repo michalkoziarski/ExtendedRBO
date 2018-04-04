@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import os
 import pandas as pd
@@ -257,4 +258,7 @@ def names(partition_type=None):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.info('Loading datasets...')
+
     load_all()
