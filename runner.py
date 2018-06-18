@@ -50,19 +50,17 @@ def run():
         clf = classifiers.get(trial['Classifier'])
 
         if trial['Algorithm'] in ['RBO+', 'RBO+CV']:
-            if trial['Algorithm'] == 'RBO+':
-                alg = ExtendedRBO
-            elif trial['Algorithm'] == 'RBO+CV':
-                alg = ExtendedRBOCV
-            else:
-                raise NotImplementedError
-
             if trial.get('Parameters') is None:
                 params = {}
             else:
                 params = json.loads(trial['Parameters'].replace('\'', '"'))
 
-            algorithm = alg(**params)
+            if trial['Algorithm'] == 'RBO+':
+                algorithm = ExtendedRBO(**params)
+            elif trial['Algorithm'] == 'RBO+CV':
+                algorithm = ExtendedRBOCV(clf, 'AUC', **params)
+            else:
+                raise NotImplementedError
         elif (trial['Algorithm'] is None) or (trial['Algorithm'] == 'None'):
             algorithm = None
         else:
