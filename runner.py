@@ -58,7 +58,7 @@ def run():
             if trial['Algorithm'] == 'RBO+':
                 algorithm = ExtendedRBO(**params)
             elif trial['Algorithm'] == 'RBO+CV':
-                algorithm = ExtendedRBOCV(clf, 'AUC', **params)
+                algorithm = ExtendedRBOCV(clf, metrics.roc_auc_score, **params)
             else:
                 raise NotImplementedError
         elif (trial['Algorithm'] is None) or (trial['Algorithm'] == 'None'):
