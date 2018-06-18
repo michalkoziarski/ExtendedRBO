@@ -1,6 +1,8 @@
 import logging
 import numpy as np
 
+from sklearn.model_selection import StratifiedKFold
+
 
 def distance(x, y, p_norm=1):
     return np.sum(np.abs(x - y) ** p_norm) ** (1 / p_norm)
@@ -207,3 +209,38 @@ class ExtendedRBO:
                 appended.append(point + translation)
 
         return np.concatenate([X, appended]), np.concatenate([y, minority_class * np.ones(len(appended))])
+
+
+class ExtendedRBOCV:
+    def __init__(self, classifier, measure, n_splits=3, n_steps=(500, ), **kwargs):
+        self.classifier = classifier
+        self.measure = measure
+        self.n_splits = n_splits
+        self.n_steps = n_steps
+        self.kwargs = kwargs
+
+        self.skf = StratifiedKFold(n_splits=n_splits)
+
+    def fit_sample(self, X, y):
+        self.skf.get_n_splits(X, y)
+
+        best_score = -np.inf
+        best_n_steps = None
+
+        for n_steps in self.n_steps:
+            scores = []
+
+            for train_idx, test_idx in self.skf.split(X, y):
+                X_train, y_train = ExtendedRBO(n_steps=n_steps, **self.kwargs).fit_sample(X[train_idx], y[train_idx])
+
+                classifier = self.classifier.fit(X_train, y_train)
+                predictions = classifier.predict(X[test_idx])
+                scores.append(self.measure(y[test_idx], predictions))
+
+            score = np.mean(scores)
+
+            if score > best_score:
+                best_score = score
+                best_n_steps = n_steps
+
+        return ExtendedRBO(n_steps=best_n_steps, **self.kwargs).fit_sample(X, y)
