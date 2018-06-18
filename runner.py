@@ -4,7 +4,7 @@ import multiprocessing as mp
 import numpy as np
 import time
 
-from algorithms import ExtendedRBO
+from algorithms import ExtendedRBO, ExtendedRBOCV
 from databases import pull_pending, submit_result
 from datasets import load
 from sklearn import metrics
@@ -49,13 +49,20 @@ def run():
 
         clf = classifiers.get(trial['Classifier'])
 
-        if trial['Algorithm'] == 'RBO+':
+        if trial['Algorithm'] in ['RBO+', 'RBO+CV']:
+            if trial['Algorithm'] == 'RBO+':
+                alg = ExtendedRBO
+            elif trial['Algorithm'] == 'RBO+CV':
+                alg = ExtendedRBOCV
+            else:
+                raise NotImplementedError
+
             if trial.get('Parameters') is None:
                 params = {}
             else:
                 params = json.loads(trial['Parameters'].replace('\'', '"'))
 
-            algorithm = ExtendedRBO(**params)
+            algorithm = alg(**params)
         elif (trial['Algorithm'] is None) or (trial['Algorithm'] == 'None'):
             algorithm = None
         else:
