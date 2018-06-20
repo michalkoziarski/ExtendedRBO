@@ -104,7 +104,7 @@ class ExtendedRBO:
         elif self.gamma_scaling == 'sqrt':
             minority_gamma = self.gamma * np.sqrt(imbalance_ratio)
         elif self.gamma_scaling == 'log':
-            minority_gamma = self.gamma_scaling * np.log2(1 + imbalance_ratio)
+            minority_gamma = self.gamma * np.log2(1 + imbalance_ratio)
         else:
             raise NotImplementedError
 
