@@ -22,7 +22,7 @@ for dataset in tqdm(datasets.names('preliminary')):
                 trial = {
                     'Algorithm': 'RBO+CV',
                     'Parameters': {
-                        'gamma': gamma,
+                        'gammas': [gamma],
                         'step_size': 0.001,
                         'n_steps': [1, 4, 16, 64, 256],
                         'n_steps_scaling': 'linear'
