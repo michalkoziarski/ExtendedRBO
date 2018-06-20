@@ -62,11 +62,11 @@ def generate_possible_directions(n_dimensions, excluded_direction=None):
 
 
 class ExtendedRBO:
-    def __init__(self, gamma=0.05, step_size=0.001, n_steps=500, gamma_scaling=None, n_steps_scaling=None,
+    def __init__(self, gamma=0.05, step_size=0.001, n_steps=500, gamma_scaling='none', n_steps_scaling='none',
                  approximate_potential=False, n_nearest_neighbors=25, borderline=False, m_nearest_neighbors=5,
                  generate_in_between=False, cache_potential=True, n=None):
-        assert gamma_scaling in [None, 'linear', 'sqrt', 'log']
-        assert n_steps_scaling in [None, 'linear']
+        assert gamma_scaling in ['none', 'linear', 'sqrt', 'log']
+        assert n_steps_scaling in ['none', 'linear']
 
         self.gamma = gamma
         self.step_size = step_size
@@ -97,7 +97,7 @@ class ExtendedRBO:
 
         majority_gamma = self.gamma
 
-        if self.gamma_scaling is None:
+        if self.gamma_scaling == 'none':
             minority_gamma = self.gamma
         elif self.gamma_scaling == 'linear':
             minority_gamma = self.gamma * imbalance_ratio
@@ -108,7 +108,7 @@ class ExtendedRBO:
         else:
             raise NotImplementedError
 
-        if self.n_steps_scaling is None:
+        if self.n_steps_scaling == 'none':
             n_steps = self.n_steps
         elif self.n_steps_scaling == 'linear':
             n_steps = self.n_steps * X.shape[1]

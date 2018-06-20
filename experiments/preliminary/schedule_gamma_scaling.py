@@ -18,7 +18,7 @@ logging.info('Scheduling experiments...')
 for dataset in tqdm(datasets.names('preliminary')):
     for fold in range(1, 11):
         for classifier in ['KNN', 'CART', 'SVM', 'NB']:
-            for gamma_scaling in [None, 'linear', 'sqrt', 'log']:
+            for gamma_scaling in ['none', 'linear', 'sqrt', 'log']:
                 trial = {
                     'Algorithm': 'RBO+CV',
                     'Parameters': {
