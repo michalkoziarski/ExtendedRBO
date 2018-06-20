@@ -37,9 +37,9 @@ def load_preliminary_dict(classifier, metric, parameter, values):
     return measurements
 
 
-def load_preliminary_df(classifier, parameter, values, metrics=('F-measure', 'AUC', 'G-mean')):
+def load_preliminary_df(classifier, parameter, values, metrics=('F-measure', 'AUC', 'G-mean'), algorithm='RBO+'):
     trials = pd.DataFrame(databases._select({
-        'Algorithm': 'RBO+',
+        'Algorithm': algorithm,
         'Description': 'Preliminary (%s)' % parameter,
         'Classifier': classifier
     }, fetch='all', database_path=databases.FINISHED_PATH))
@@ -82,11 +82,18 @@ def test_friedman_shaffer(dictionary):
     return ranks, p_value, corrected_p_values
 
 
-def plot_preliminary(classifier, parameter, values, metrics=('F-measure', 'AUC', 'G-mean'), outname=None, xlabel=None):
+def plot_preliminary(classifier, parameter, values, metrics=('F-measure', 'AUC', 'G-mean'), outname=None, xlabel=None,
+                     algorithm=None):
     if xlabel is None:
         xlabel = parameter.replace('_', ' ')
 
-    df = load_preliminary_df(classifier, parameter, values, metrics)
+    if algorithm is None:
+        if parameter == 'n_steps':
+            algorithm = 'RBO+'
+        else:
+            algorithm = 'RBO+CV'
+
+    df = load_preliminary_df(classifier, parameter, values, metrics, algorithm)
     df[xlabel] = df['value'].map(lambda x: values.index(x))
 
     grid = sns.FacetGrid(df, col='DS', hue='metric', col_wrap=5)
