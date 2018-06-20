@@ -212,11 +212,12 @@ class ExtendedRBO:
 
 
 class ExtendedRBOCV:
-    def __init__(self, classifier, measure, n_splits=3, n_steps=(500, ), **kwargs):
+    def __init__(self, classifier, measure, n_splits=3, n_steps=(500, ), gammas=(0.05, ), **kwargs):
         self.classifier = classifier
         self.measure = measure
         self.n_splits = n_splits
         self.n_steps = n_steps
+        self.gammas = gammas
         self.kwargs = kwargs
 
         self.skf = StratifiedKFold(n_splits=n_splits)
@@ -226,21 +227,25 @@ class ExtendedRBOCV:
 
         best_score = -np.inf
         best_n_steps = None
+        best_gamma = None
 
         for n_steps in self.n_steps:
-            scores = []
+            for gamma in self.gammas:
+                scores = []
 
-            for train_idx, test_idx in self.skf.split(X, y):
-                X_train, y_train = ExtendedRBO(n_steps=n_steps, **self.kwargs).fit_sample(X[train_idx], y[train_idx])
+                for train_idx, test_idx in self.skf.split(X, y):
+                    X_train, y_train = ExtendedRBO(n_steps=n_steps, gamma=gamma, **self.kwargs).\
+                        fit_sample(X[train_idx], y[train_idx])
 
-                classifier = self.classifier.fit(X_train, y_train)
-                predictions = classifier.predict(X[test_idx])
-                scores.append(self.measure(y[test_idx], predictions))
+                    classifier = self.classifier.fit(X_train, y_train)
+                    predictions = classifier.predict(X[test_idx])
+                    scores.append(self.measure(y[test_idx], predictions))
 
-            score = np.mean(scores)
+                score = np.mean(scores)
 
-            if score > best_score:
-                best_score = score
-                best_n_steps = n_steps
+                if score > best_score:
+                    best_score = score
+                    best_n_steps = n_steps
+                    best_gamma = gamma
 
-        return ExtendedRBO(n_steps=best_n_steps, **self.kwargs).fit_sample(X, y)
+        return ExtendedRBO(n_steps=best_n_steps, gamma=best_gamma, **self.kwargs).fit_sample(X, y)
