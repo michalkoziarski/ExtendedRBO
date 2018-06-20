@@ -25,8 +25,8 @@ for dataset in tqdm(datasets.names('preliminary')):
                         'gammas': [0.05, 0.5, 5.0],
                         'step_size': 0.001,
                         'n_steps': [1, 4, 16, 64, 256],
-                        'n_steps_scaling': 'linear',
-                        'gamma_scaling': gamma_scaling
+                        'gamma_scaling': gamma_scaling,
+                        'n_steps_scaling': 'linear'
                     },
                     'Classifier': classifier,
                     'Dataset': dataset,
