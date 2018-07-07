@@ -53,7 +53,9 @@ def run():
             if trial.get('Parameters') is None:
                 params = {}
             else:
-                params = json.loads(trial['Parameters'].replace('\'', '"'))
+                params = json.loads(
+                    trial['Parameters'].replace('\'', '"').replace('False', 'false').replace('True', 'true')
+                )
 
             if trial['Algorithm'] == 'RBO+':
                 algorithm = ExtendedRBO(**params)
