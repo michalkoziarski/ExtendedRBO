@@ -168,7 +168,7 @@ class ExtendedRBO:
                     distance_vector[i] = -np.inf
                     indices = np.argsort(distance_vector)[:(self.n_nearest_neighbors + 1)]
                 else:
-                    indices = sorted_neighbors_indices[:(self.n_nearest_neighbors + 1)]
+                    indices = sorted_neighbors_indices[i][:(self.n_nearest_neighbors + 1)]
 
                 closest_points = X[indices]
                 closest_labels = y[indices]
