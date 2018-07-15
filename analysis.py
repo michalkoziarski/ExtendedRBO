@@ -111,7 +111,7 @@ def plot_preliminary(classifier, parameter, values, outname=None, kind='miniplot
     elif kind == 'pointplots':
         grid = sns.factorplot(x=xlabel, y='score', hue='metric', data=df, kind='point')
     elif kind == 'boxplots':
-        grid = sns.boxplot(x=xlabel, y='score', hue='metric', data=df)
+        grid = sns.boxplot(x=xlabel, y='score', hue='metric', data=df, showfliers=False)
     elif kind == 'barplots':
         grid = sns.factorplot(x=xlabel, y='score', hue='metric', data=df, kind='bar')
     else:
