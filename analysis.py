@@ -24,7 +24,8 @@ def _select_scores(df, parameter, value):
     selection = df[df['Parameters'].str.contains("'%s': %s[,|}]" % (parameter, value))]
     scores = list(selection['Scores'].map(lambda x: eval(x)))
 
-    assert len(scores) == 10
+    if len(scores) != 10:
+        raise ValueError('Incorrect number of loaded scores: expected 10, got %d.' % len(scores))
 
     return scores
 
