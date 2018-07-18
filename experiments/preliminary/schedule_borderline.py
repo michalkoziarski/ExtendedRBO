@@ -28,6 +28,7 @@ for dataset in tqdm(datasets.names('preliminary')):
                         'approximate_potential': True,
                         'n_nearest_neighbors': 25,
                         'borderline': borderline,
+                        'm_nearest_neighbors': 0.5,
                         'n_steps_scaling': 'linear'
                     },
                     'Classifier': classifier,

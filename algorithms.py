@@ -132,9 +132,36 @@ class ExtendedRBO:
                 indices = np.argsort(distance_vector)
                 sorted_neighbors_indices.append(indices)
 
-                n_minority_neighbors = np.sum(y[indices[1:(self.m_nearest_neighbors + 1)]] == minority_class)
+            if type(self.m_nearest_neighbors) is int:
+                considered_m_values = [self.m_nearest_neighbors]
+            elif type(self.m_nearest_neighbors) is float:
+                considered_m_values = list(range(len(X)))
+            else:
+                raise NotImplementedError
 
-                if self.m_nearest_neighbors / 2 <= n_minority_neighbors < self.m_nearest_neighbors:
+            n_borderline = []
+
+            for m in considered_m_values:
+                n_borderline.append(0)
+
+                for i in range(len(minority_points)):
+                    n_minority_neighbors = np.sum(
+                        y[sorted_neighbors_indices[i][1:(m + 1)]] == minority_class
+                    )
+
+                    if m / 2 <= n_minority_neighbors < m:
+                        n_borderline[-1] += 1
+
+            borderline_fractions = [n_b / len(minority_points) for n_b in n_borderline]
+            selected_idx = np.argmin([np.abs(self.m_nearest_neighbors - fraction) for fraction in borderline_fractions])
+            m = considered_m_values[selected_idx]
+
+            for i in range(len(minority_points)):
+                n_minority_neighbors = np.sum(
+                    y[sorted_neighbors_indices[i][1:(m + 1)]] == minority_class
+                )
+
+                if m / 2 <= n_minority_neighbors < m:
                     considered_minority_points_indices.append(i)
 
             if len(considered_minority_points_indices) == 0:
