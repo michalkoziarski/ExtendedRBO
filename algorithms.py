@@ -63,7 +63,7 @@ def generate_possible_directions(n_dimensions, excluded_direction=None):
 
 class ExtendedRBO:
     def __init__(self, gamma=0.05, step_size=0.001, n_steps=500, gamma_scaling='none', n_steps_scaling='none',
-                 approximate_potential=False, n_nearest_neighbors=25, borderline=False, m_nearest_neighbors=10,
+                 approximate_potential=False, n_nearest_neighbors=25, borderline=False, m_nearest_neighbors=0.5,
                  generate_in_between=False, cache_potential=True, n=None):
         assert gamma_scaling in ['none', 'linear', 'sqrt', 'log']
         assert n_steps_scaling in ['none', 'linear']
