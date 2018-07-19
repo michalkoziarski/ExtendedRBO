@@ -231,7 +231,7 @@ class ExtendedRBO:
                         possible_directions = generate_possible_directions(len(point), (dimension, -sign))
 
                 if self.generate_in_between:
-                    translation = np.random.choice(translation_history)
+                    translation = translation_history[np.random.randint(len(translation_history))]
 
                 appended.append(point + translation)
 
