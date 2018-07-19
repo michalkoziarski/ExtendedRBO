@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logging.info('Scheduling experiments...')
 
 
-for dataset in tqdm(datasets.names('generate_in_between')):
+for dataset in tqdm(datasets.names('preliminary')):
     for fold in range(1, 11):
         for classifier in ['KNN', 'CART', 'SVM', 'NB']:
             for generate_in_between in [False, True]:
