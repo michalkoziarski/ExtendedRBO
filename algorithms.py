@@ -64,9 +64,11 @@ def generate_possible_directions(n_dimensions, excluded_direction=None):
 class ExtendedRBO:
     def __init__(self, gamma=0.05, step_size=0.001, n_steps=500, gamma_scaling='none', n_steps_scaling='none',
                  approximate_potential=False, n_nearest_neighbors=25, borderline=False, m_nearest_neighbors=0.5,
-                 generate_in_between=False, cache_potential=True, n=None):
+                 ignore_outliers=False, k_nearest_neighbors=5, generate_in_between=False, cache_potential=True,
+                 n=None):
         assert gamma_scaling in ['none', 'linear', 'sqrt', 'log']
         assert n_steps_scaling in ['none', 'linear']
+        assert not (borderline and ignore_outliers)
 
         self.gamma = gamma
         self.step_size = step_size
@@ -77,6 +79,8 @@ class ExtendedRBO:
         self.n_nearest_neighbors = n_nearest_neighbors
         self.borderline = borderline
         self.m_nearest_neighbors = m_nearest_neighbors
+        self.ignore_outliers = ignore_outliers
+        self.k_nearest_neighbors = k_nearest_neighbors
         self.generate_in_between = generate_in_between
         self.cache_potential = cache_potential
         self.n = n
@@ -165,7 +169,25 @@ class ExtendedRBO:
                     considered_minority_points_indices.append(i)
 
             if len(considered_minority_points_indices) == 0:
-                logging.warning('Failed to find any borderline instances, falling back to non-borderline mode.')
+                logging.warning('Failed to find any borderline instances, falling back to basic mode.')
+
+                considered_minority_points_indices = range(len(minority_points))
+        elif self.ignore_outliers:
+            sorted_neighbors_indices = []
+            considered_minority_points_indices = []
+
+            for i in range(len(minority_points)):
+                distance_vector = [distance(minority_points[i], x) for x in X]
+                distance_vector[i] = -np.inf
+                indices = np.argsort(distance_vector)
+                sorted_neighbors_indices.append(indices)
+                n_minority_neighbors = np.sum(y[indices[1:(self.k_nearest_neighbors + 1)]] == minority_class)
+
+                if n_minority_neighbors > 0:
+                    considered_minority_points_indices.append(i)
+
+            if len(considered_minority_points_indices) == 0:
+                logging.warning('Failed to find any non-outlier instances, falling back to basic mode.')
 
                 considered_minority_points_indices = range(len(minority_points))
         else:
