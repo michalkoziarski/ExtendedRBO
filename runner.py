@@ -31,6 +31,17 @@ def run():
 
         logging.info('Processing trial: %s...' % trial)
 
+        dataset = load(trial['Dataset'])
+        fold = int(trial['Fold']) - 1
+
+        (X_train, y_train), (X_test, y_test) = dataset[fold][0], dataset[fold][1]
+
+        labels = np.unique(y_test)
+        counts = [len(y_test[y_test == label]) for label in labels]
+        minority_class = labels[np.argmin(counts)]
+
+        k_neighbors = np.min([len(y_train[y_train == minority_class]) - 1, 5])
+
         classifiers = {
             'NB': GaussianNB(),
             'KNN': KNeighborsClassifier(),
@@ -41,11 +52,11 @@ def run():
         algorithms = {
             'ROS': RandomOverSampler(),
             'RUS': RandomUnderSampler(),
-            'SMOTE': SMOTE(),
-            'SMOTE+ENN': SMOTEENN(),
-            'SMOTE+TL': SMOTETomek(),
-            'Bord': SMOTE(kind='borderline1'),
-            'ADASYN': ADASYN(),
+            'SMOTE': SMOTE(k=k_neighbors),
+            'SMOTE+ENN': SMOTEENN(k=k_neighbors),
+            'SMOTE+TL': SMOTETomek(k=k_neighbors),
+            'Bord': SMOTE(k=k_neighbors, kind='borderline1'),
+            'ADASYN': ADASYN(k=k_neighbors),
             'NCL': NeighbourhoodCleaningRule()
         }
 
@@ -72,18 +83,6 @@ def run():
 
             if algorithm is None:
                 raise NotImplementedError
-
-        dataset = load(trial['Dataset'])
-        fold = int(trial['Fold']) - 1
-
-        (X_train, y_train), (X_test, y_test) = dataset[fold][0], dataset[fold][1]
-
-        labels = np.unique(y_test)
-        counts = [len(y_test[y_test == label]) for label in labels]
-        minority_class = labels[np.argmin(counts)]
-
-        if algorithm.__class__ in [ADASYN, SMOTE, SMOTEENN, SMOTETomek]:
-            algorithm.k_neighbors = np.min([len(y_train[y_train == minority_class]) - 1, 5])
 
         start_time = time.process_time()
 
