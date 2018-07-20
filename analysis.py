@@ -108,16 +108,28 @@ def plot_preliminary(classifier, parameter, values, outname=None, kind='miniplot
         grid.map(plt.plot, xlabel, 'score')
         grid.fig.legend(loc='lower center', ncol=3, labels=metrics)
         grid.fig.subplots_adjust(bottom=0.075)
+
+        xticks = list(range(len(values)))
+        xticklabels = values
     elif kind == 'pointplots':
         grid = sns.factorplot(x=xlabel, y='score', hue='metric', data=df, kind='point')
+
+        xticks = list(range(len(values)))
+        xticklabels = values
     elif kind == 'boxplots':
-        grid = sns.boxplot(x=xlabel, y='score', hue='metric', data=df, showfliers=False)
+        grid = sns.boxplot(x='metric', y='score', hue=xlabel, data=df, showfliers=False)
+
+        xticks = list(range(len(metrics)))
+        xticklabels = metrics
     elif kind == 'barplots':
-        grid = sns.factorplot(x=xlabel, y='score', hue='metric', data=df, kind='bar')
+        grid = sns.factorplot(x='metric', y='score', hue=xlabel, data=df, kind='bar')
+
+        xticks = list(range(len(metrics)))
+        xticklabels = metrics
     else:
         raise ValueError
 
-    grid.set(xticks=list(range(len(values))), xticklabels=values, ylim=ylim)
+    grid.set(xticks=xticks, xticklabels=xticklabels, ylim=ylim)
 
     if outname is None:
         plt.show()
