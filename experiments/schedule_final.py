@@ -37,7 +37,7 @@ for dataset in tqdm(datasets.names('final')):
 
             databases.add_to_pending(trial)
 
-            for algorithm in ['ROS', 'RUS', 'SMOTE', 'SMOTE+ENN', 'SMOTE+TL', 'Bord', 'ADASYN', 'NCL']:
+            for algorithm in ['ROS', 'RUS', 'SMOTE', 'SMOTE+ENN', 'SMOTE+TL', 'Bord', 'NCL']:
                 trial = {
                     'Algorithm': algorithm,
                     'Parameters': None,
