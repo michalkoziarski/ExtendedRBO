@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 
+from itertools import product
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -298,3 +299,40 @@ class ExtendedRBOCV:
                     best_gamma = gamma
 
         return ExtendedRBO(n_steps=best_n_steps, gamma=best_gamma, **self.kwargs).fit_sample(X, y)
+
+
+class ResamplingCV:
+    def __init__(self, algorithm, classifier, measure, n_splits=3, **kwargs):
+        self.algorithm = algorithm
+        self.classifier = classifier
+        self.measure = measure
+        self.n_splits = n_splits
+        self.kwargs = kwargs
+
+        self.skf = StratifiedKFold(n_splits=n_splits)
+
+    def fit_sample(self, X, y):
+        self.skf.get_n_splits(X, y)
+
+        best_score = -np.inf
+        best_parameters = None
+
+        for parameters in (dict(zip(self.kwargs, x)) for x in product(*self.kwargs.values())):
+            scores = []
+
+            for train_idx, test_idx in self.skf.split(X, y):
+                X_train, y_train = self.algorithm(**parameters).fit_sample(X[train_idx], y[train_idx])
+
+                classifier = self.classifier.fit(X_train, y_train)
+                predictions = classifier.predict(X[test_idx])
+                scores.append(self.measure(y[test_idx], predictions))
+
+            score = np.mean(scores)
+
+            if score > best_score:
+                best_score = score
+                best_parameters = parameters
+
+        logging.info('Selected parameters: %s.' % best_parameters)
+
+        return self.algorithm(**best_parameters).fit_sample(X, y)
