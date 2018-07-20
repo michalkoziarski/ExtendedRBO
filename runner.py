@@ -13,8 +13,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from imblearn.combine import SMOTEENN, SMOTETomek
-from imblearn.over_sampling import ADASYN, SMOTE
-from imblearn.under_sampling import NeighbourhoodCleaningRule
+from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE
+from imblearn.under_sampling import NeighbourhoodCleaningRule, RandomUnderSampler
 
 
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +39,8 @@ def run():
         }
 
         algorithms = {
+            'ROS': RandomOverSampler(),
+            'RUS': RandomUnderSampler(),
             'SMOTE': SMOTE(),
             'SMOTE+ENN': SMOTEENN(),
             'SMOTE+TL': SMOTETomek(),
