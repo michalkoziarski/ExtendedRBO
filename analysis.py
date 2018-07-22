@@ -49,6 +49,40 @@ def load_preliminary_dict(classifier, metric, parameter, values, algorithm='RBO+
     return measurements
 
 
+def load_final_dict(classifier, metric):
+    algorithms = ['ROS', 'RUS', 'SMOTE', 'SMOTE+ENN', 'SMOTE+TL', 'Bord', 'NCL', 'RBO+_1', 'RBO+_2']
+
+    measurements = OrderedDict()
+
+    for algorithm in algorithms:
+        measurements[algorithm] = []
+
+        if algorithm.startswith('RBO+'):
+            trials = _get_trials('Final', classifier, 'RBO+CV')
+            indices = trials['Parameters'].str.contains("'%s': %s[,|}]" % ('ignore_outliers', True))
+
+            if algorithm == 'RBO+_1':
+                trials = trials[~indices]
+            elif algorithm == 'RBO+_2':
+                trials = trials[indices]
+            else:
+                raise NotImplementedError
+        else:
+            trials = _get_trials('Final', classifier, algorithm)
+
+        for dataset in datasets.names('final'):
+            dataset_selection = trials[trials['Dataset'] == dataset]
+            scores = list(dataset_selection['Scores'].map(lambda x: eval(x)))
+
+            if len(scores) != 10:
+                raise ValueError('Incorrect number of loaded scores: expected 10, got %d.' % len(scores))
+
+            score = np.mean([score[metric] for score in scores])
+            measurements[algorithm].append(score)
+
+    return measurements
+
+
 def load_preliminary_df(classifier, parameter, values, metrics=('F-measure', 'AUC', 'G-mean'), algorithm='RBO+'):
     trials = _get_trials('Preliminary (%s)' % parameter, classifier, algorithm)
 
